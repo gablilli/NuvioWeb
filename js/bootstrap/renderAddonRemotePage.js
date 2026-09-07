@@ -245,6 +245,7 @@ const AddonRemotePage = {
     this.draftAddons = [];
     this.collections = [];
     this.catalogItems = [];
+    this.removedAddonBaseUrls = new Set();
     this.render();
 
     try {
@@ -292,6 +293,7 @@ const AddonRemotePage = {
     this.draftAddons = await addonRepository.getInstalledAddons({ includeDisabled: true });
     this.collections = CollectionsStore.get();
     this.catalogPrefs = clonePrefs(HomeCatalogStore.get());
+    this.removedAddonBaseUrls = new Set();
     this.rebuildCatalogItems();
     this.savedState = this.buildCurrentState();
     this.isBootstrapping = false;
@@ -323,6 +325,7 @@ const AddonRemotePage = {
     }
 
     this.draftAddons = [...this.draftAddons, result.data];
+    this.removedAddonBaseUrls.delete(normalizedUrl);
     this.addonDraft = "";
     this.rebuildCatalogItems();
     this.render();
@@ -344,6 +347,10 @@ const AddonRemotePage = {
   removeAddon(index) {
     if (index < 0 || index >= this.draftAddons.length) {
       return;
+    }
+    const removed = this.draftAddons[index];
+    if (removed?.baseUrl) {
+      this.removedAddonBaseUrls.add(removed.baseUrl);
     }
     this.draftAddons = this.draftAddons.filter((_, currentIndex) => currentIndex !== index);
     this.rebuildCatalogItems();
@@ -384,8 +391,15 @@ const AddonRemotePage = {
     this.render();
 
     try {
-      const addonUrls = this.draftAddons.map((addon) => addon.baseUrl);
-      await addonRepository.setAddonOrder(addonUrls);
+      const latestStoredUrls = addonRepository.getInstalledAddonUrls();
+      const draftUrls = this.draftAddons.map((addon) => addon.baseUrl);
+      const draftUrlSet = new Set(draftUrls);
+      const preservedMissingUrls = latestStoredUrls.filter(
+        (url) => !draftUrlSet.has(url) && !this.removedAddonBaseUrls.has(url)
+      );
+      const reconciledUrls = [...draftUrls, ...preservedMissingUrls];
+
+      await addonRepository.setAddonOrder(reconciledUrls);
       HomeCatalogStore.setOrder(this.catalogPrefs.order);
       HomeCatalogStore.set({ disabled: this.catalogPrefs.disabled });
 
@@ -395,6 +409,7 @@ const AddonRemotePage = {
         await HomeCatalogSettingsSyncService.push();
       }
 
+      this.removedAddonBaseUrls = new Set();
       this.savedState = this.buildCurrentState();
       this.statusMessage = AuthManager.isAuthenticated
         ? "Addon and home catalog changes saved and pushed to your synced profile."
