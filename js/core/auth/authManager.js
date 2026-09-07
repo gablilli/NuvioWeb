@@ -103,7 +103,7 @@ class AuthManagerClass {
       if (this.wasLastSessionRefreshTransientFailure() && SessionStore.accessToken) {
         this.setState(AuthState.AUTHENTICATED);
       } else if (this.state !== AuthState.SIGNED_OUT) {
-        await this.signOut();
+        await this.signOut({ clearLocalData: false });
       }
       return;
     }
@@ -151,13 +151,15 @@ class AuthManagerClass {
     this.setState(AuthState.AUTHENTICATED);
   }
 
-  async signOut() {
+  async signOut({ clearLocalData = true } = {}) {
     const wasSignedOut = this.state === AuthState.SIGNED_OUT;
     SessionStore.clear();
-    try {
-      clearAccountLocalData();
-    } catch (error) {
-      console.warn("Account-local data reset failed during sign out", error);
+    if (clearLocalData) {
+      try {
+        clearAccountLocalData();
+      } catch (error) {
+        console.warn("Account-local data reset failed during sign out", error);
+      }
     }
     await PluginCodeStore.clearAll();
     this.cachedEffectiveUserId = null;
@@ -197,7 +199,7 @@ class AuthManagerClass {
           const responseBody = await res.text();
           if (isInvalidRefreshResponse(res.status, responseBody)) {
             this.lastRefreshFailureKind = "invalid";
-            await this.signOut();
+            await this.signOut({ clearLocalData: false });
             return false;
           }
 
@@ -310,7 +312,7 @@ class AuthManagerClass {
     if (!SessionStore.accessToken) {
       const refreshed = await this.refreshSessionIfNeeded();
       if (!refreshed || !SessionStore.accessToken) {
-        await this.signOut();
+        await this.signOut({ clearLocalData: false });
         throw new Error("Missing valid session token");
       }
     }
@@ -345,7 +347,7 @@ class AuthManagerClass {
         !this.wasLastSessionRefreshTransientFailure() &&
         this.state !== AuthState.SIGNED_OUT
       ) {
-        await this.signOut();
+        await this.signOut({ clearLocalData: false });
       }
       throw new Error(await res.text());
     }
