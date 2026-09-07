@@ -1,0 +1,80 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Write local.properties from secret
+        env:
+          NUVIO_LOCAL_PROPERTIES: ${{ secrets.NUVIO_LOCAL_PROPERTIES }}
+        run: |
+          if [ -n "$NUVIO_LOCAL_PROPERTIES" ]; then
+            printf '%s\n' "$NUVIO_LOCAL_PROPERTIES" > local.properties
+            echo "local.properties written from secret"
+          else
+            cp local.example.properties local.properties
+            echo "No secret found, using local.example.properties as fallback"
+          fi
+
+      - name: Build app
+        run: npm run build
+
+      - name: patch index.html for GitHub Pages base path
+        env:
+          BASE_PATH: ${{ vars.PAGES_BASE_PATH || '/' }}
+        run: |
+          if [ "$BASE_PATH" != "/" ]; then
+            sed -i "s|href=\"css/|href=\"${BASE_PATH}css/|g" dist/index.html
+            sed -i "s|src=\"assets/|src=\"${BASE_PATH}assets/|g" dist/index.html
+            sed -i "s|src=\"boot-guard.js\"|src=\"${BASE_PATH}boot-guard.js\"|g" dist/index.html
+            sed -i "s|src=\"core-js.bundle.js|src=\"${BASE_PATH}core-js.bundle.js|g" dist/index.html
+            sed -i "s|src=\"nuvio.env.js\"|src=\"${BASE_PATH}nuvio.env.js\"|g" dist/index.html
+            sed -i "s|src=\"app.bundle.js|src=\"${BASE_PATH}app.bundle.js|g" dist/index.html
+            echo "Paths updated with base path: $BASE_PATH"
+          fi
+
+      - name: add spa 404 fallback
+        run: cp dist/index.html dist/404.html
+
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
