@@ -51,6 +51,13 @@ function createShell() {
   document.body.innerHTML = `
     <div class="addon-remote-shell">
       <style>
+        html,
+        body {
+          overflow-y: auto !important;
+          overflow-x: hidden !important;
+          height: auto !important;
+          min-height: 100%;
+        }
         body {
           margin: 0;
           background: #000;
