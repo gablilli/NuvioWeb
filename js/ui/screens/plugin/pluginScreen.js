@@ -200,12 +200,16 @@ export const PluginScreen = {
     this.actionMap = new Map();
     this.setRowColumns(0, [0]);
     this.setRowColumns(1, [0]);
+    this.setRowColumns(2, [0]);
     if (!this.model.isEssential) {
-      this.setRowColumns(2, [0]);
+      this.setRowColumns(3, [0]);
     }
 
     this.actionMap.set("manage_from_phone", async () => {
       await this.openQrOverlay();
+    });
+    this.actionMap.set("add_addon_manually", () => {
+      window.open(window.location.origin + window.location.pathname + "?addonsRemote=1", "_blank");
     });
     this.actionMap.set("reorder_home_catalogs", async () => {
       Router.navigate("catalogOrder");
@@ -266,13 +270,29 @@ export const PluginScreen = {
                     <span class="addons-large-row-tail material-icons" aria-hidden="true">phone_android</span>
                   </span>
                 </div>
+                <div role="button"
+                     class="addons-large-row addons-large-row-centered addons-focusable"
+                     data-zone="content"
+                     data-row="1"
+                     data-col="0"
+                     data-action-id="add_addon_manually"
+                     tabindex="-1">
+                  <span class="addons-large-row-icon material-icons" aria-hidden="true">add_circle_outline</span>
+                  <span class="addons-large-row-copy">
+                    <strong>Add addon manually</strong>
+                    <small>Enter a manifest URL directly, no account required</small>
+                  </span>
+                  <span class="addons-large-row-tail-group">
+                    <span class="addons-large-row-tail material-icons" aria-hidden="true">open_in_new</span>
+                  </span>
+                </div>
                 ${
                   this.model.isEssential
                     ? ""
                     : `<div role="button"
                      class="addons-large-row addons-large-row-centered addons-focusable"
                      data-zone="content"
-                     data-row="1"
+                     data-row="2"
                      data-col="0"
                      data-action-id="reorder_home_catalogs"
                      tabindex="-1">
@@ -289,7 +309,7 @@ export const PluginScreen = {
                 <div role="button"
                      class="addons-large-row addons-large-row-centered addons-focusable"
                      data-zone="content"
-                     data-row="${this.model.isEssential ? 1 : 2}"
+                     data-row="${this.model.isEssential ? 2 : 3}"
                      data-col="0"
                      data-action-id="refresh_addons"
                      tabindex="-1"
