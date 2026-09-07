@@ -237,7 +237,7 @@ export async function httpRequest(url, options = {}) {
           (SessionStore.accessToken || SessionStore.refreshToken) &&
           !refreshFailedTransiently
         ) {
-          await AuthManager.signOut();
+          await AuthManager.signOut({ clearLocalData: false });
         }
         const text = await response.text();
         const error = new Error(text);
