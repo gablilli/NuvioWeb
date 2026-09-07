@@ -31,6 +31,21 @@ class AddonRepository {
     this.changeListeners = new Set();
     this.manifestChangeListeners = new Set();
     this.restoreManifestCache();
+    this.bindCrossTabStorageSync();
+  }
+
+  bindCrossTabStorageSync() {
+    if (typeof window === "undefined") {
+      return;
+    }
+    window.addEventListener("storage", (event) => {
+      if (
+        event.key === ADDON_URLS_KEY ||
+        (typeof event.key === "string" && event.key.startsWith(ADDON_URLS_KEY))
+      ) {
+        this.notifyAddonsChanged("cross-tab");
+      }
+    });
   }
 
   restoreManifestCache() {
