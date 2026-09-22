@@ -6,6 +6,7 @@ import { SimklSyncService } from "./simklSyncService.js";
 import { TraktAuthService, requestJson as traktRequestJson } from "./traktAuthService.js";
 import { watchedItemIdentityValues, watchedItemsShareIdentity } from "./watchedIdentity.js";
 import { getSyncBackoffRemainingMs } from "../../core/sync/syncBackoffPolicy.js";
+import { registerSessionTeardownHandler } from "../../core/auth/sessionLifecycle.js";
 
 function activeProfileId() {
   return String(ProfileManager.getActiveProfileId() || "1");
@@ -23,6 +24,14 @@ function shouldUseTrakt() {
     TraktSettingsStore.get().watchProgressSource === WatchProgressSource.TRAKT &&
     TraktAuthService.isAuthenticated()
   );
+}
+
+function isSimklConnected() {
+  return SimklAuthStore.isAuthenticated();
+}
+
+function isTraktConnected() {
+  return TraktAuthService.isAuthenticated();
 }
 
 function traktIds(item = {}) {
@@ -289,19 +298,30 @@ function limitWatchedItems(items, limit) {
 
 const watchedItemsSyncTimers = new Map();
 const watchedItemsSyncInFlightByProfile = new Map();
+let watchedItemsSyncGeneration = 0;
 
 function queueWatchedItemsCloudSync(profileId = activeProfileId(), delayMs = 250) {
   const profileKey = String(profileId || "1");
+  const generation = watchedItemsSyncGeneration;
   const existingTimer = watchedItemsSyncTimers.get(profileKey);
   if (existingTimer) {
     clearTimeout(existingTimer);
   }
   const timerId = setTimeout(() => {
+    if (generation !== watchedItemsSyncGeneration) {
+      return;
+    }
     watchedItemsSyncTimers.delete(profileKey);
     const runPush = async () => {
+      if (generation !== watchedItemsSyncGeneration) {
+        return;
+      }
       const inFlight = watchedItemsSyncInFlightByProfile.get(profileKey);
       if (inFlight) {
         await inFlight.catch(() => false);
+      }
+      if (generation !== watchedItemsSyncGeneration) {
+        return;
       }
       const pushPromise = import("../../core/profile/watchedItemsSyncService.js")
         .then(({ WatchedItemsSyncService }) => WatchedItemsSyncService.push(profileId))
@@ -316,6 +336,9 @@ function queueWatchedItemsCloudSync(profileId = activeProfileId(), delayMs = 250
         });
       watchedItemsSyncInFlightByProfile.set(profileKey, pushPromise);
       const didPush = await pushPromise;
+      if (generation !== watchedItemsSyncGeneration) {
+        return;
+      }
       if (!didPush) {
         const retryDelayMs = getSyncBackoffRemainingMs();
         if (retryDelayMs > 0) {
@@ -327,6 +350,22 @@ function queueWatchedItemsCloudSync(profileId = activeProfileId(), delayMs = 250
   }, delayMs);
   watchedItemsSyncTimers.set(profileKey, timerId);
 }
+
+function stopWatchedItemsCloudSync({ waitForInFlight = true } = {}) {
+  const pending = waitForInFlight ? [...watchedItemsSyncInFlightByProfile.values()] : [];
+  watchedItemsSyncGeneration += 1;
+  watchedItemsSyncTimers.forEach((timerId) => clearTimeout(timerId));
+  watchedItemsSyncTimers.clear();
+  watchedItemsSyncInFlightByProfile.clear();
+  if (!waitForInFlight || pending.length === 0) {
+    return Promise.resolve(true);
+  }
+  return Promise.allSettled(pending).then(() => true);
+}
+
+registerSessionTeardownHandler?.(({ waitForInFlight = true } = {}) =>
+  stopWatchedItemsCloudSync({ waitForInFlight })
+);
 
 function matchesWatchedTarget(item = {}, contentId, options = null) {
   const targetContentId = String(contentId || "").trim();
@@ -425,14 +464,14 @@ class WatchedItemsRepository {
     // Android commits local completion before broadcasting to tracking providers.
     // A provider outage must not discard the completed state or the cloud enqueue.
     if (options.skipTrackingWrite !== true) {
-      if (shouldUseSimkl()) {
+      if (isSimklConnected()) {
         try {
           await SimklSyncService.markWatched(item);
         } catch (error) {
           console.warn("Simkl watched history write failed", error);
         }
       }
-      if (shouldUseTrakt()) {
+      if (isTraktConnected()) {
         try {
           await writeTraktHistory(item, false);
         } catch (error) {
@@ -459,7 +498,7 @@ class WatchedItemsRepository {
     }
     invalidateTraktWatchedCaches();
 
-    if (shouldUseSimkl() && options?.skipTrackingWrite !== true) {
+    if (isSimklConnected() && options?.skipTrackingWrite !== true) {
       const remoteMatches = removedItems.length
         ? []
         : (await SimklSyncService.getWatchedItems().catch(() => [])).filter((item) =>
@@ -486,7 +525,7 @@ class WatchedItemsRepository {
         }
       }
     }
-    if (shouldUseTrakt() && options?.skipTrackingWrite !== true) {
+    if (isTraktConnected() && options?.skipTrackingWrite !== true) {
       const targets = removedItems.length
         ? removedItems
         : [

@@ -1,3 +1,84 @@
+## 1.1.8
+
+### Improvements & Fixes
+
+- Reworked CSS build output into a single ordered bundle compatible with Tizen and webOS wrapper runtimes while preserving stylesheet cascade order and static-page references (@WhiteGiso)
+- Fixed Tizen clock formatting to prefer the browser Intl hour cycle when the platform-reported pattern conflicts with the actual formatter (@WhiteGiso)
+- Aligned player completion with Android by preserving natural-completion state through post-play dismissal, preventing an AVPlay resume after stream completion, and restoring movie-detail fallback navigation (@WhiteGiso)
+- Refreshed embedded webOS subtitle styling after enabling the selected subtitle track during playback (@WhiteGiso)
+- Normalized Samsung Back key aliases and removed the duplicate Tizen hardware-key path to prevent repeated navigation while preserving packaged input handling (@WhiteGiso)
+- Fixed Tizen EngineFS proxy-header normalization so encoded header values and HLS segment URLs are serialized correctly (@WhiteGiso)
+
+## 1.1.7
+
+### Improvements & Fixes
+
+- Broke the Smart TV router and screen import cycle so Tizen startup no longer captures an undefined navigation router and remains stuck loading on affected TVs (@WhiteGiso)
+
+## 1.1.6
+
+### Improvements & Fixes
+
+- Restored the Tizen install compatibility floor at 2.3 while keeping the runtime support warning at Tizen 4.0, so older TVs can install the app and choose whether to continue (@WhiteGiso)
+
+## 1.1.5
+
+### Improvements & Fixes
+
+- Added an always-visible unsupported-device warning with localized Close and Try Anyway actions; the bypass lasts for the current session only, so the warning returns on the next launch (@WhiteGiso)
+- Removed the Tizen package-level minimum-version block so older TVs can reach the in-app compatibility decision while runtime capability checks remain active (@WhiteGiso)
+- Completed unsupported-device warning translations across all 36 app locales (@WhiteGiso)
+- Fixed the Essential playback settings crash on unsupported Tizen TVs and clearly disabled the unavailable P2P option (@WhiteGiso)
+- Restored direct and managed Debrid stream classification and local-resolution helpers in the shared presentation API (@WhiteGiso)
+- Expanded runtime lint coverage and removed stale self-imports from player and profile modules (@WhiteGiso)
+
+## 1.1.4
+
+### Improvements & Fixes
+
+- Reconciled Tizen audio metadata with AVPlay stream and container codec order so track labels and selections remain consistent with Android TV ordering (@WhiteGiso)
+- Preserved the live playback resume position when returning from the player to an existing Streams screen, preventing stale route parameters from reopening a stream at an older position (@WhiteGiso)
+- Unified Tizen HLS engine selection around hls.js when MSE is available, including live playback, while retaining AVPlay and native HLS fallbacks (@WhiteGiso)
+- Added a bounded, cancellable queue for bursty plugin HTTP requests while preserving the active concurrency limit, cancellation, and diagnostics (@WhiteGiso)
+- Improved live stream detection and recovery across direct-file, HLS, and native playback transitions (@WhiteGiso)
+- Updated TV streaming and build dependencies while preserving compatibility with the legacy webOS packaging path (@WhiteGiso)
+- Reorganized Smart TV UI, player, data, synchronization, and stylesheet code into focused responsibility-based modules while preserving Android TV-aligned runtime contracts (@WhiteGiso)
+
+## 1.1.3
+
+### Improvements & Fixes
+
+- Hardened stream and subtitle header isolation across hosts, redirects, and HTTPS downgrades while preserving provider request contracts (@WhiteGiso)
+- Added Android-aligned movie credits, post-credits skip intervals, precise seeking, settings, and post-play integration (@WhiteGiso)
+- Aligned binge-group defaults, TMDB collection ordering, Simkl TVDB preferences, RTL text detection, subtitle language aliases, and Continue Watching theming (@WhiteGiso)
+- Added certified Rotten Tomatoes and audience rating states to MDBList metadata and playback/detail surfaces (@WhiteGiso)
+
+## 1.1.2
+
+### Improvements & Fixes
+
+- Added Android-aligned subtitle delay persistence and remote-friendly Auto Sync controls for addon subtitles (@WhiteGiso)
+- Improved Discover poster hydration by loading visible and nearby artwork explicitly inside TV scroll containers (@WhiteGiso)
+
+## 1.1.1
+
+### Improvements & Fixes
+
+- Aligned Tizen VOD HLS playback with Android by preferring hls.js when MSE is available while retaining AVPlay and native HLS fallbacks (@WhiteGiso)
+- Preserved Tizen playback-proxy startup for packaged EngineFS services when generic web-service capability is unavailable (@WhiteGiso)
+- Prevented bright seams in Arabic HTML subtitles by compositing text opacity separately from the outline layer (@WhiteGiso)
+- Improved plugin provider connectivity by trying all resolved DNS addresses within the existing request deadline and tracing per-address connection timeouts (@WhiteGiso)
+
+## 1.1.0
+
+### Improvements & Fixes
+
+- Aligned series detail episode rendering with Android TV through stable season and episode updates, duplicate-card removal, long-season virtualization, and focused title marquee behavior (@WhiteGiso)
+- Published focused Home heroes immediately, stabilized artwork crossfades and focused GIF cleanup, and prevented preserved Home content from bleeding into other routes (@WhiteGiso)
+- Improved Continue Watching Next Up resolution by enriching the selected season and episode, applying TMDB release dates independently, and filtering unavailable episodes (@WhiteGiso)
+- Kept Skip Intro visibility and D-pad focus synchronized with playback loading while containing left and right overlay navigation events (@WhiteGiso)
+- Restored Android-aligned poster focus scaling across Home layouts and fixed subtitle rail sizing on legacy Chromium TV runtimes (@WhiteGiso)
+
 ## 1.0.10
 
 ### Improvements & Fixes
