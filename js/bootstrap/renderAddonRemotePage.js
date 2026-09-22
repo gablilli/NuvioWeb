@@ -51,13 +51,6 @@ function createShell() {
   document.body.innerHTML = `
     <div class="addon-remote-shell">
       <style>
-        html,
-        body {
-          overflow-y: auto !important;
-          overflow-x: hidden !important;
-          height: auto !important;
-          min-height: 100%;
-        }
         body {
           margin: 0;
           background: #000;
@@ -150,10 +143,6 @@ function createShell() {
           border-radius: 20px;
           background: rgba(255, 255, 255, 0.05);
           border: 1px solid rgba(255, 255, 255, 0.06);
-        }
-        .addon-remote-card.is-unreachable {
-          border-color: rgba(207, 102, 121, 0.35);
-          background: rgba(207, 102, 121, 0.06);
         }
         .addon-remote-order {
           display: flex;
@@ -256,7 +245,6 @@ const AddonRemotePage = {
     this.draftAddons = [];
     this.collections = [];
     this.catalogItems = [];
-    this.removedAddonBaseUrls = new Set();
     this.render();
 
     try {
@@ -297,59 +285,13 @@ const AddonRemotePage = {
     };
   },
 
-  buildPlaceholderAddon(url) {
-    const cleanUrl = addonRepository.canonicalizeUrl(url);
-    const displayName = addonRepository.getAddonDisplayNameOverride(cleanUrl) || cleanUrl;
-    return {
-      id: cleanUrl,
-      name: displayName,
-      displayName,
-      baseUrl: cleanUrl,
-      description: null,
-      catalogs: [],
-      resources: [],
-      types: [],
-      idPrefixes: [],
-      isUnreachable: true
-    };
-  },
-
-  fillMissingAddonsWithPlaceholders(loadedAddons) {
-    const allStoredUrls = addonRepository.getInstalledAddonUrls();
-    const loadedByUrl = new Map(
-      loadedAddons.map((addon) => [addonRepository.canonicalizeUrl(addon.baseUrl), addon])
-    );
-    return allStoredUrls.map(
-      (url) =>
-        loadedByUrl.get(addonRepository.canonicalizeUrl(url)) || this.buildPlaceholderAddon(url)
-    );
-  },
-
-  async retryAddon(baseUrl) {
-    const index = this.draftAddons.findIndex((addon) => addon.baseUrl === baseUrl);
-    if (index < 0) {
-      return;
-    }
-    this.statusMessage = "";
-    const result = await addonRepository.fetchAddon(baseUrl, { force: true });
-    if (result.status === "success") {
-      const next = [...this.draftAddons];
-      next[index] = result.data;
-      this.draftAddons = next;
-      this.rebuildCatalogItems();
-    }
-    this.render();
-  },
-
   async loadCurrentState() {
     this.isBootstrapping = true;
     this.render();
 
-    const loadedAddons = await addonRepository.getInstalledAddons({ includeDisabled: true });
-    this.draftAddons = this.fillMissingAddonsWithPlaceholders(loadedAddons);
+    this.draftAddons = await addonRepository.getInstalledAddons({ includeDisabled: true });
     this.collections = CollectionsStore.get();
     this.catalogPrefs = clonePrefs(HomeCatalogStore.get());
-    this.removedAddonBaseUrls = new Set();
     this.rebuildCatalogItems();
     this.savedState = this.buildCurrentState();
     this.isBootstrapping = false;
@@ -381,7 +323,6 @@ const AddonRemotePage = {
     }
 
     this.draftAddons = [...this.draftAddons, result.data];
-    this.removedAddonBaseUrls.delete(normalizedUrl);
     this.addonDraft = "";
     this.rebuildCatalogItems();
     this.render();
@@ -403,10 +344,6 @@ const AddonRemotePage = {
   removeAddon(index) {
     if (index < 0 || index >= this.draftAddons.length) {
       return;
-    }
-    const removed = this.draftAddons[index];
-    if (removed?.baseUrl) {
-      this.removedAddonBaseUrls.add(removed.baseUrl);
     }
     this.draftAddons = this.draftAddons.filter((_, currentIndex) => currentIndex !== index);
     this.rebuildCatalogItems();
@@ -447,15 +384,10 @@ const AddonRemotePage = {
     this.render();
 
     try {
-      const latestStoredUrls = addonRepository.getInstalledAddonUrls();
-      const draftUrls = this.draftAddons.map((addon) => addon.baseUrl);
-      const draftUrlSet = new Set(draftUrls);
-      const preservedMissingUrls = latestStoredUrls.filter(
-        (url) => !draftUrlSet.has(url) && !this.removedAddonBaseUrls.has(url)
-      );
-      const reconciledUrls = [...draftUrls, ...preservedMissingUrls];
-
-      await addonRepository.setAddonOrder(reconciledUrls);
+      const addonUrls = this.draftAddons.map((addon) => addon.baseUrl);
+      // This page pushes immediately below. Avoid scheduling the same payload
+      // through StartupSyncService's Android-compatible 500 ms change queue.
+      await addonRepository.setAddonOrder(addonUrls, { silent: true });
       HomeCatalogStore.setOrder(this.catalogPrefs.order);
       HomeCatalogStore.set({ disabled: this.catalogPrefs.disabled });
 
@@ -465,7 +397,6 @@ const AddonRemotePage = {
         await HomeCatalogSettingsSyncService.push();
       }
 
-      this.removedAddonBaseUrls = new Set();
       this.savedState = this.buildCurrentState();
       this.statusMessage = AuthManager.isAuthenticated
         ? "Addon and home catalog changes saved and pushed to your synced profile."
@@ -521,12 +452,6 @@ const AddonRemotePage = {
       });
     });
 
-    this.root.querySelectorAll("[data-addon-retry]").forEach((node) => {
-      node.addEventListener("click", async () => {
-        await this.retryAddon(String(node.dataset.addonRetry || ""));
-      });
-    });
-
     this.root.querySelectorAll("[data-catalog-up]").forEach((node) => {
       node.addEventListener("click", () => {
         this.moveCatalog(Number(node.dataset.catalogUp || 0), -1);
@@ -561,7 +486,7 @@ const AddonRemotePage = {
       ? this.draftAddons
           .map(
             (addon, index) => `
-          <article class="addon-remote-card${addon.isUnreachable ? " is-unreachable" : ""}">
+          <article class="addon-remote-card">
             <div class="addon-remote-order">
               <button class="addon-remote-btn" data-addon-up="${index}" ${index === 0 ? "disabled" : ""}>Up</button>
               <button class="addon-remote-btn" data-addon-down="${index}" ${index === this.draftAddons.length - 1 ? "disabled" : ""}>Down</button>
@@ -569,20 +494,9 @@ const AddonRemotePage = {
             <div class="addon-remote-copy">
               <strong>${escapeHtml(addon.displayName || addon.name || addon.baseUrl)}</strong>
               <span>${escapeHtml(addon.baseUrl)}</span>
-              ${
-                addon.isUnreachable
-                  ? '<span style="color:#ffb5c0;">Could not load this addon right now. It is kept in your list — tap Retry or try saving again later.</span>'
-                  : addon.description
-                    ? `<span>${escapeHtml(addon.description)}</span>`
-                    : ""
-              }
+              ${addon.description ? `<span>${escapeHtml(addon.description)}</span>` : ""}
             </div>
             <div class="addon-remote-actions">
-              ${
-                addon.isUnreachable
-                  ? `<button class="addon-remote-btn" data-addon-retry="${escapeHtml(addon.baseUrl)}">Retry</button>`
-                  : ""
-              }
               <button class="addon-remote-btn addon-remote-btn-danger" data-addon-remove="${index}">Remove</button>
             </div>
           </article>

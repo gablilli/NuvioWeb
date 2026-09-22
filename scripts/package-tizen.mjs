@@ -113,7 +113,7 @@ function buildConfigXml({
   return `<?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns:tizen="http://tizen.org/ns/widgets" xmlns="http://www.w3.org/ns/widgets" id="${defaultWidgetUri}" version="${version}" viewmodes="maximized">
   <access origin="*" subdomains="true"/>
-  <tizen:application id="${appId}" package="${packageId}" required_version="${compatibilityPolicy.tizenRequiredVersion}"/>
+  <tizen:application id="${appId}" package="${packageId}" required_version="${compatibilityPolicy.tizenInstallMinimumVersion}"/>
   <author href="${defaultWidgetUri}">Nuvio</author>
   <content src="index.html"/>
   <feature name="http://tizen.org/feature/screen.size.all"/>
@@ -124,7 +124,7 @@ ${serviceFeature}  <icon src="icon.png"/>
 ${applicationLaunchPrivilege}  <tizen:privilege name="http://developer.samsung.com/privilege/network.public"/>
   <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
 ${engineFsService}${pluginService}  <tizen:profile name="tv-samsung"/>
-  <tizen:setting screen-orientation="landscape" context-menu="enable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
+  <tizen:setting screen-orientation="landscape" context-menu="enable" background-support="disable" encryption="disable" install-location="auto"/>
 </widget>
 `;
 }
@@ -177,10 +177,7 @@ function buildIndexHtml({ includeEngineFsService = false, includePluginService =
   <title>${appName}</title>
   <script src="$WEBAPIS/webapis/webapis.js"></script>
   <script src="assets/runtime/legacy-features.js"></script>
-${pluginServiceBridge}  <link rel="stylesheet" href="css/base.css" />
-  <link rel="stylesheet" href="css/layout.css" />
-  <link rel="stylesheet" href="css/components.css" />
-  <link rel="stylesheet" href="css/themes.css" />
+${pluginServiceBridge}  <link rel="stylesheet" href="css/bundle.css" />
 </head>
 <body>
   <script src="boot-guard.js"></script>

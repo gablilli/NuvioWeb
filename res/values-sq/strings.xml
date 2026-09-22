@@ -2970,4 +2970,27 @@
     <string name="settings.plugins.removeRepository">Hiq repository-n</string>
     <string name="home.continueStatusWatchedPercent">Shikuar {{percent}}%</string>
     <string name="player_post_play_play_manually">Luaj manualisht</string>
+<string name="server_options_title">Server options</string>
+<string name="server_options_custom_active">Connected to a self-hosted server</string>
+<string name="server_options_official_active">Using the official Nuvio server</string>
+<string name="auth_email_email_label">Email</string>
+<string name="auth_email_password_label">Password</string>
+<string name="auth_email_required">Enter your email and password.</string>
+<string name="auth_email_invalid_credentials">The email or password is incorrect.</string>
+<string name="auth_email_network_error">Could not reach the server. Check your connection and try again.</string>
+<string name="auth_email_sign_in_failed">Sign in failed: %1$s</string>
+<string name="auth_qr_configure_server">Configure a server to generate a QR code</string>
+<string name="auth_qr_not_configured">Choose Server options to connect this TV before generating a QR code.</string>
+    <string name="custom_server_capability_email">Email and password</string>
+    <string name="custom_server_capability_tv_login">TV/QR login</string>
+    <string name="auth_qr_manual_instruction">Or go to %1$s and enter</string>
+    <string name="unsupported_device_title">Televizori nuk mbështetet</string>
+    <string name="unsupported_device_message">Ky televizor nuk i plotëson kërkesat minimale për këtë version të Nuvio TV.</string>
+    <string name="unsupported_device_current_platform">Platforma aktuale</string>
+    <string name="unsupported_device_current_firmware">Firmware aktual</string>
+    <string name="unsupported_device_required_platform">Platforma e kërkuar</string>
+    <string name="unsupported_device_warning">Mund të provoni ta nisni përsëri Nuvio TV, por aplikacioni mund të mos funksionojë siç duhet në këtë televizor. Ky konfigurim nuk mbështetet zyrtarisht.</string>
+    <string name="unsupported_device_close">Mbyll</string>
+    <string name="unsupported_device_try_anyway">Provo gjithsesi</string>
+    <string name="unsupported_device_unavailable">E padisponueshme</string>
 </resources>
